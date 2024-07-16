@@ -1,0 +1,30 @@
+manifest:
+  defaults:
+    revision: main
+    
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: nordic
+      url-base: https://github.com/nrfconnect
+    - name: wn_modules
+      url-base: https://github.com/wavenumber-eng
+
+  defaults:
+    remote: zephyrproject-rtos
+
+  projects:
+    - name: sdk-nrf
+      path: nrf
+      remote: nordic
+      revision: main
+      import: true
+    
+    - name: wn_zephyr_modules   
+      remote: wn_modules    
+      path: ./modules/wavenumber   
+      revision: main
+
+  self:
+    path: nxp_cup
+      
