@@ -10,3 +10,5 @@ zephyr_library_compile_options(-fdiagnostics-color=always)
 
 project(nxp-cup)
 target_sources(app PRIVATE src/main.c)
+
+target_sources(app PRIVATE src/ble.c)

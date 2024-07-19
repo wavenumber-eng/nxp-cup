@@ -9,8 +9,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-LOG_MODULE_REGISTER(main);
-
 static int monkey_handler(const struct shell *shell, 
                       size_t argc,
                       char **argv)
@@ -49,14 +47,19 @@ static int monkey_handler(const struct shell *shell,
 
 SHELL_CMD_REGISTER(monkey, NULL, "magic monkey", monkey_handler);
 
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-int main(void)
-{
+extern void ble_init(void);
 
-	LOG_INF("Hello world");
+int main(void) {
+    LOG_INF("Hello world");
 
-	while(1)
-	{  
-		k_sleep(K_MSEC(1000));
-	}
+    // Initialize BLE
+    ble_init();
+
+    while (1) {
+        k_sleep(K_MSEC(1000));
+    }
+
+    return 0;
 }
