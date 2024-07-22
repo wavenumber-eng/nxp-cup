@@ -9,6 +9,8 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
+#include "ble.h"
+
 LOG_MODULE_REGISTER(main);
 
 static int monkey_handler(const struct shell *shell, 
@@ -55,6 +57,8 @@ int main(void)
 
 	LOG_INF("Hello world");
 
+   ble_init();
+   
 	while(1)
 	{  
 		k_sleep(K_MSEC(1000));

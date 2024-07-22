@@ -31,9 +31,9 @@ It is quite large and can take a few minutes but only has to be initialize once.
 
 4.) open the folder your created in step 1 in vs code.
 
-You will see another folder of the same name "projects/nxp-cup" which has a hello world folder.
+You will see another folder of the same name "projects/nxp-cup" which has a BLE app folder.
 
-Right click on the hello world folder an "open in integrated terminal"
+Right click on the BLE app folder an "open in integrated terminal"
 
 Run the command 
 

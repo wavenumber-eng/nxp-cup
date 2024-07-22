@@ -9,4 +9,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 zephyr_library_compile_options(-fdiagnostics-color=always)
 
 project(nxp-cup)
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.c src/ble.c)

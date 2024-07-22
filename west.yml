@@ -14,12 +14,11 @@ manifest:
     remote: zephyrproject-rtos
 
   projects:
-    - name: zephyr
-      remote: zephyrproject-rtos
-      repo-path: zephyr
-      revision: main
+    - name: sdk-nrf
+      path: nrf
+      remote: nordic
+      revision: v2.6.0
       import: true
-
     - name: wn_zephyr_modules   
       remote: wn_modules    
       path: ./modules/wavenumber   
