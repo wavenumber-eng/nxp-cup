@@ -9,16 +9,11 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <zephyr/drivers/i2c.h>
-#include <zephyr/device.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "ble.h"
-
-#define I2C_ADDR 0x04
-#define I2C_DATA_LEN 5
+#include "motor.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -66,27 +61,20 @@ static int motor_drive_power_handler(const struct shell *shell,
    int drive_power;
    sscanf(argv[1], "%d", &drive_power);
 
-   int device;
-   sscanf(argv[2], "%d", &device);
+   int regi;
+   sscanf(argv[2], "%d", &regi);
 
-   const struct device *i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
-    if (!device_is_ready(i2c_dev)) {
-        printk("I2C: Device is not ready.\n");
-        return -ENODEV;
-    }
-
-   uint8_t data[I2C_DATA_LEN] = {0x33, 0x00, 0x00, 0x00, 0x00};
-
-   // Perform the I2C write operation
-   int ret = i2c_write(i2c_dev, data, I2C_DATA_LEN, I2C_ADDR);
+   //The neccesary reversal for same direction movement in motors 2 and 4 specifically.
+   int move[4] = {0, 1, 0, -1};
+   int ret = motor_drive(regi, drive_power, 0, move);
    if (ret) {
-      printk("I2C write failed (%d)\n", ret);
+      printk("motor drive failed (%d)\n", ret);
    } else {
-      printk("I2C write successful\n");
+      printk("motor drive successful\n");
    }
 
    shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Drive Power: %d\n", drive_power);
-   shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Device: %d\n", device);
+   shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Register: %d\n", regi);
 
    return 0;
 }
@@ -96,10 +84,25 @@ SHELL_CMD_REGISTER(motor_drive_power, NULL, "Returns hex number from decimal inp
 
 int main(void)
 {
+	LOG_INF("starting...");
 
-	LOG_INF("Hello world");
+   int result;
 
-   ble_init();
+   /*
+   result = ble_init();
+   if (result) {
+      LOG_WRN("ble_init() failed");
+   } else {
+      LOG_INF("ble_init() successful");
+   }
+   */
+
+   result = motor_init();
+   if (result) {
+      LOG_WRN("motor_init() failed");
+   } else {
+      LOG_INF("motor_init() successful");
+   }
 
 	while(1)
 	{  
