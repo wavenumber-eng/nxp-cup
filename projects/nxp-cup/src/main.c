@@ -61,12 +61,15 @@ static int motor_drive_power_handler(const struct shell *shell,
    int drive_power;
    sscanf(argv[1], "%d", &drive_power);
 
+   int wait_time;
+   sscanf(argv[2], "%d", &wait_time);
+
    int regi;
-   sscanf(argv[2], "%d", &regi);
+   sscanf(argv[3], "%d", &regi);
 
    //The neccesary reversal for same direction movement in motors 2 and 4 specifically.
    int move[4] = {0, 1, 0, -1};
-   int ret = motor_drive(regi, drive_power, 0, move);
+   int ret = motor_drive(regi, drive_power, wait_time, move);
    if (ret) {
       printk("motor drive failed (%d)\n", ret);
    } else {
@@ -74,13 +77,44 @@ static int motor_drive_power_handler(const struct shell *shell,
    }
 
    shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Drive Power: %d\n", drive_power);
+   shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Duration: %d\n", wait_time);
    shell_fprintf(shell, SHELL_VT100_COLOR_GREEN, "Register: %d\n", regi);
 
    return 0;
 }
 
+static int motor_interp_power_handler(const struct shell *shell,
+                                     size_t argc,
+                                     char **argv)
+{
+   ARG_UNUSED(argc);
+
+   int power_srt;
+   sscanf(argv[1], "%d", &power_srt);
+
+   int power_end;
+   sscanf(argv[2], "%d", &power_end);
+
+   int step;
+   sscanf(argv[3], "%d", &step);
+
+   int regi;
+   sscanf(argv[4], "%d", &regi);
+
+   int move[4] = {0, 1, 0, -1};
+   int ret = motor_interp(regi, power_srt, power_end, step, move);
+   if (ret) {
+      printk("motor interp failed (%d)\n", ret);
+   } else {
+      printk("motor interp successful\n");
+   }
+
+   return 0;
+}
+
 SHELL_CMD_REGISTER(monkey, NULL, "magic monkey", monkey_handler);
-SHELL_CMD_REGISTER(motor_drive_power, NULL, "Returns hex number from decimal input for testing", motor_drive_power_handler);
+SHELL_CMD_REGISTER(motor_drive_power, NULL, "Drive the motor for a duration, duration 0 is ignored", motor_drive_power_handler);
+SHELL_CMD_REGISTER(motor_interp_power, NULL, "Move from one speed to another", motor_interp_power_handler);
 
 int main(void)
 {
