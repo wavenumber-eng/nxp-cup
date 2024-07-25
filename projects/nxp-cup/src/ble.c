@@ -14,6 +14,7 @@
 #include <zephyr/types.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/byteorder.h>
@@ -27,6 +28,8 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/services/bas.h>
 #include <zephyr/bluetooth/services/ias.h>
+
+#include "motor.h"
 
 /* Custom Service Variables */
 #define BT_UUID_CUSTOM_SERVICE_VAL \
@@ -61,7 +64,38 @@ static ssize_t read_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 static void on_vnd_value_change(const struct bt_gatt_attr *attr)
 {
     uint8_t *value = attr->user_data;
+
+	char *converted_val = (char *)value;
+
     printk("Characteristic value changed: %s\n", value);
+	printk("Converted Val: %s\n", converted_val);
+
+	char int_str[10]; // Buffer to hold the substring as a string
+    int value_as_int;
+
+    // Ensure the end index is within bounds and that the substring is properly null-terminated
+    strncpy(int_str, converted_val + 1, sizeof(int_str) - 1);
+    int_str[sizeof(int_str) - 1] = '\0'; // Null-terminate the substring
+
+    // Convert the substring to an integer
+    value_as_int = atoi(int_str);
+
+    printk("Converted integer value: %d\n", value_as_int);
+
+	switch (converted_val[0])
+	{
+        case 'P':
+            printk("BLE Characteristic: Drive detected\n");
+			int move[4] = {0, 1, 0, -1};
+			motor_drive(0x33, value_as_int, 0x00, move);
+            break;
+        case 'S':
+            printk("BLE Characteristic: Steer detected (Unhandled)\n");
+            break;
+        default:
+            printk("BLE Characteristic: Unhandled command detected\n");
+            break;
+    }
 }
 
 static ssize_t write_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
