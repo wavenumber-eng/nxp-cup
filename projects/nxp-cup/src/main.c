@@ -122,15 +122,16 @@ int main(void)
 
    int result;
 
-   /*
+   // Checks and sets up the BLE service.
    result = ble_init();
    if (result) {
       LOG_WRN("ble_init() failed");
    } else {
       LOG_INF("ble_init() successful");
    }
-   */
+   
 
+  // Checks if the I2C motor encoder device is ready.
    result = motor_init();
    if (result) {
       LOG_WRN("motor_init() failed");

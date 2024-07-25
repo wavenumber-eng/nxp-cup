@@ -42,7 +42,7 @@ static const struct bt_uuid_128 vnd_char_uuid = BT_UUID_INIT_128(
     BT_UUID_CUSTOM_CHARACTERISTIC_VAL);
 
 static const struct bt_uuid_128 vnd_enc_uuid = BT_UUID_INIT_128(
-	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef1));
+	BT_UUID_128_ENCODE(0xbeb5483e, 0x36e1, 0x4688, 0xb7f5, 0xea07361b26a8));
 
 #define VND_MAX_LEN 20
 
@@ -57,20 +57,29 @@ static ssize_t read_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				 strlen(value));
 }
 
-static ssize_t write_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-			 const void *buf, uint16_t len, uint16_t offset,
-			 uint8_t flags)
+// Callback for when the characteristic changes and prints it to the shell.
+static void on_vnd_value_change(const struct bt_gatt_attr *attr)
 {
-	uint8_t *value = attr->user_data;
+    uint8_t *value = attr->user_data;
+    printk("Characteristic value changed: %s\n", value);
+}
 
-	if (offset + len > VND_MAX_LEN) {
-		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
-	}
+static ssize_t write_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                         const void *buf, uint16_t len, uint16_t offset,
+                         uint8_t flags)
+{
+    uint8_t *value = attr->user_data;
 
-	memcpy(value + offset, buf, len);
-	value[offset + len] = 0;
+    if (offset + len > VND_MAX_LEN) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
 
-	return len;
+    memcpy(value + offset, buf, len);
+    value[offset + len] = 0;
+
+    on_vnd_value_change(attr);
+
+    return len;
 }
 
 static uint8_t simulate_vnd;
@@ -117,9 +126,9 @@ static void indicate_destroy(struct bt_gatt_indicate_params *params)
 BT_GATT_SERVICE_DEFINE(vnd_svc,
     BT_GATT_PRIMARY_SERVICE(&vnd_uuid),
     BT_GATT_CHARACTERISTIC(&vnd_char_uuid.uuid,
-                           BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+                           BT_GATT_CHRC_WRITE | BT_GATT_CHRC_WRITE_WITHOUT_RESP,
                            BT_GATT_PERM_WRITE, NULL,
-                           write_without_rsp_vnd, &vnd_value),
+                           write_vnd, &vnd_value),
 );
 
 static const struct bt_data ad[] = {
