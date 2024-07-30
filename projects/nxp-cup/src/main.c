@@ -112,31 +112,54 @@ static int motor_interp_power_handler(const struct shell *shell,
    return 0;
 }
 
+static int motor_steer_angle_handler(const struct shell *shell,
+                                     size_t argc,
+                                     char **argv)
+{
+   ARG_UNUSED(argc);
+
+   int angle_srt;
+   sscanf(argv[1], "%d", &angle_srt);
+
+   int angle_end;
+   sscanf(argv[2], "%d", &angle_end);
+
+
+   int ret = motor_servo(angle_srt, angle_end);
+   if (ret) {
+      printk("motor steer failed (%d)\n", ret);
+   } else {
+      printk("motor steer successful\n");
+   }
+}
+
+
 SHELL_CMD_REGISTER(monkey, NULL, "magic monkey", monkey_handler);
 SHELL_CMD_REGISTER(motor_drive_power, NULL, "Drive the motor for a duration, duration 0 is ignored", motor_drive_power_handler);
 SHELL_CMD_REGISTER(motor_interp_power, NULL, "Move from one speed to another", motor_interp_power_handler);
+SHELL_CMD_REGISTER(motor_steer_angle, NULL, "Set steering angle", motor_steer_angle_handler);
 
 int main(void)
 {
-	LOG_INF("starting...");
+	printk("starting...\n\n");
 
    int result;
 
    // Checks and sets up the BLE service.
    result = ble_init();
    if (result) {
-      LOG_WRN("ble_init() failed");
+      printk("ble_init() failed\n\n");
    } else {
-      LOG_INF("ble_init() successful");
+      printk("ble_init() successful\n\n");
    }
    
 
   // Checks if the I2C motor encoder device is ready.
    result = motor_init();
    if (result) {
-      LOG_WRN("motor_init() failed");
+      printk("motor_init() failed\n\n");
    } else {
-      LOG_INF("motor_init() successful");
+      printk("motor_init() successful\n\n");
    }
 
 	while(1)

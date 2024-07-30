@@ -5,12 +5,24 @@
 #include <math.h>
 #include <zephyr/kernel.h>
 
+#include <zephyr/drivers/pwm.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/zephyr.h>
+
 // I2C ADDRESS TESTING
 //#define I2C_ADDR 0x04 //AARDVARK
 #define I2C_ADDR 0x34 //MOTOR ENCODER
 
+// Threading for Motor Interpolation
 #define THREAD_STACK_SIZE 1024
 #define THREAD_PRIORITY K_PRIO_PREEMPT(1)
+
+// PWM defines
+#define PWM_NODE DT_NODELABEL(pwm0)
+#define PWM_CHANNEL 0                   /* Channel 0 corresponds to PWM_OUT0 */
+#define PWM_PERIOD_USEC 2.857 * 1000 * 1000    // Mimic 350Hz frequency
+#define PWM_POLARITY_NORMAL 0           // Normal polarity for the PWM signal
+#define SLEW 1                         // Slew rate to move Servo
 
 const struct device *i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 
@@ -26,6 +38,27 @@ int motor_init(void)
         printk("I2C: Device is ready.\n");
     }
     return 0;
+
+    // Sweep the steering motor to catch current state
+    const struct device *pwm_dev;
+    pwm_dev = DEVICE_DT_GET(PWM_NODE);
+    int ret;
+    for(int sweep = 1000*1000; sweep <= 2000*1000; sweep+= 1000) {
+        ret = pwm_set(pwm_dev, PWM_CHANNEL, PWM_PERIOD_USEC, sweep, NULL);
+        k_sleep(K_MSEC(SLEW));
+    }
+    // Sweep with motor locked back to home
+    for(int sweep = 2000*1000; sweep >= 1500*1000; sweep-= 1000) {
+        ret = pwm_set(pwm_dev, PWM_CHANNEL, PWM_PERIOD_USEC, sweep, NULL);
+        k_sleep(K_MSEC(SLEW));
+    }
+    if(ret) {
+        printk("SERVO MOTOR: Error in Calibration.\n");
+        return ret;
+    } else {
+        printk("SERVO MOTOR: Steering ready.\n");
+        return 0;
+    }
 }
 
 // Thread function to perform the stop I2C operation
@@ -100,6 +133,7 @@ int motor_interp(int regi, int start_pwr, int end_pwr, int step, int active_grou
     int scaled_srt_power = (int)round((double)start_pwr * (abs_limits / 100.0));
     int scaled_end_power = (int)round((double)end_pwr * (abs_limits / 100.0));
 
+    int ret = 0;
     if(scaled_srt_power < scaled_end_power)
     {
         for(int drive_power = scaled_srt_power; drive_power <= scaled_end_power; drive_power++)
@@ -108,8 +142,8 @@ int motor_interp(int regi, int start_pwr, int end_pwr, int step, int active_grou
                             (uint8_t)(active_group[1] * drive_power),
                             (uint8_t)(active_group[2] * drive_power),
                             (uint8_t)(active_group[3] * drive_power)};
+            int ret = i2c_write(i2c_dev, data, ARRAY_SIZE(data), I2C_ADDR);
             k_sleep(K_MSEC(step));
-            int ret = i2c_write(i2c_dev, data, ARRAY_SIZE(data), I2C_ADDR);              
         }
     } else {
         for(int drive_power = scaled_srt_power; drive_power >= scaled_end_power; drive_power--)
@@ -118,9 +152,51 @@ int motor_interp(int regi, int start_pwr, int end_pwr, int step, int active_grou
                             (uint8_t)(active_group[1] * drive_power),
                             (uint8_t)(active_group[2] * drive_power),
                             (uint8_t)(active_group[3] * drive_power)};
+            int ret = i2c_write(i2c_dev, data, ARRAY_SIZE(data), I2C_ADDR);
             k_sleep(K_MSEC(step));
-            int ret = i2c_write(i2c_dev, data, ARRAY_SIZE(data), I2C_ADDR);              
         }
     }
 
+    return ret;
+}
+
+int motor_servo(int angle_srt, int angle_end)
+{
+    const struct device *pwm_dev;
+    int pulse_width_srt;
+    int pulse_width_end;
+    int ret;
+
+    // Get the PWM device from the device tree
+    pwm_dev = DEVICE_DT_GET(PWM_NODE);
+    if (!device_is_ready(pwm_dev)) {
+        printk("PWM device %s is not ready", pwm_dev->name);
+        return -ENODEV; // Return an error code if the device is not ready
+    }
+
+    // Calculate pulse width based on the angle
+    pulse_width_srt = 1000*(int)round(1000 + (angle_srt + 25) * (1000 / 50.0));
+    pulse_width_end = 1000*(int)round(1000 + (angle_end + 25) * (1000 / 50.0));
+
+    if(pulse_width_srt < pulse_width_end)
+    {
+        for(int pulse_width = pulse_width_srt; pulse_width <= pulse_width_end; pulse_width+= 1000)
+        {
+            k_sleep(K_MSEC(SLEW));
+            int ret = pwm_set(pwm_dev, PWM_CHANNEL, PWM_PERIOD_USEC, pulse_width, NULL);
+        }
+    } else {
+        for(int pulse_width = pulse_width_srt; pulse_width >= pulse_width_end; pulse_width-= 1000)
+        {
+            k_sleep(K_MSEC(SLEW));
+            int ret = pwm_set(pwm_dev, PWM_CHANNEL, PWM_PERIOD_USEC, pulse_width, NULL);
+        }
+    }
+    if (ret) {
+        printk("Failed to set PWM signal. Error %d", ret);
+        return ret; // Return the error code if setting PWM fails
+    }
+
+    printk("PWM pulse width set to %d ns for angle %d degrees\n", pulse_width_end, angle_end);
+    return 0; // Return 0 for success
 }

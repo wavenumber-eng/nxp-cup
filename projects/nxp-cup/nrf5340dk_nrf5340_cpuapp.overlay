@@ -16,4 +16,16 @@
             };
         };
     };
+
+    pwm0_defaults: pwm0_defaults {
+        group1 {
+            psels = <NRF_PSEL(PWM_OUT0, 0, 28)>;
+        };
+    };
+
+    pwm0_sleeps: pwm0_sleeps {
+        group1 {
+            psels = <NRF_PSEL(PWM_OUT0, 0, 0xFFFFFFFF)>;
+        };
+    };
 };
