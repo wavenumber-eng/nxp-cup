@@ -86,11 +86,17 @@ static void on_vnd_value_change(const struct bt_gatt_attr *attr)
 	{
         case 'P':
             printk("BLE Characteristic: Drive detected\n");
-			int move[4] = {0, 1, 0, -1};
-			motor_drive(0x33, value_as_int, 0x00, move);
+
+			// Change atomic variable for Drive
+			motor_set_state_drive_tgt(value_as_int);
+
             break;
         case 'S':
-            printk("BLE Characteristic: Steer detected (Unhandled)\n");
+            printk("BLE Characteristic: Steer detected\n");
+
+			// Change atomic variable for Steer
+			motor_set_state_steer_tgt(value_as_int);
+
             break;
         default:
             printk("BLE Characteristic: Unhandled command detected\n");
@@ -248,10 +254,10 @@ int ble_init(void)
 	/* Implement notification. At the moment there is no suitable way
 	 * of starting delayed work so we do it here
 	 */
+
+	/*
 	while (1) {
 		k_sleep(K_SECONDS(1));
-
-		/* Vendor indication simulation */
 		if (simulate_vnd && vnd_ind_attr) {
 			if (indicating) {
 				continue;
@@ -268,5 +274,7 @@ int ble_init(void)
 			}
 		}
 	}
+	*/
+
 	return 0;
 }
